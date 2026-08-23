@@ -11,17 +11,92 @@ type Reservation = {
   location: string;
 };
 
-function formatDatetime(value: string) {
+function formatDate(value: string) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return new Intl.DateTimeFormat("ja-JP", {
-    year: "numeric",
     month: "long",
     day: "numeric",
     weekday: "short",
+  }).format(d);
+}
+
+function formatTime(value: string) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("ja-JP", {
     hour: "2-digit",
     minute: "2-digit",
   }).format(d);
+}
+
+function RunnerIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
+      <circle cx="15.5" cy="4" r="2.1" fill="currentColor" />
+      <path
+        d="M13.6 8.1 10 10.2l1.9 2.9-1.6 5.2M13.6 8.1l3.6 1.4 1.2 3.4M13.6 8.1 8.4 9.6 7 12.7M11.9 13.1l3.5 1.5 1.1 4.2"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M2 8h4M1 12h3.5M3 16h3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        opacity="0.5"
+      />
+    </svg>
+  );
+}
+
+function PinIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
+      <path
+        d="M12 21s7-5.7 7-10.5A7 7 0 0 0 5 10.5C5 15.3 12 21 12 21Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="10.3" r="2.4" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+/** 陸上トラックのレーンを模した背景装飾 */
+function TrackLines() {
+  const lanes = [0, 1, 2, 3, 4];
+  return (
+    <svg
+      viewBox="0 0 400 200"
+      preserveAspectRatio="none"
+      aria-hidden
+      className="pointer-events-none absolute inset-0 h-full w-full opacity-20"
+    >
+      {lanes.map((i) => (
+        <path
+          key={i}
+          d={
+            "M-20 " +
+            (190 - i * 34) +
+            " C 90 " +
+            (150 - i * 34) +
+            ", 230 " +
+            (120 - i * 30) +
+            ", 420 " +
+            (40 - i * 26)
+          }
+          stroke="currentColor"
+          strokeWidth="1.5"
+          fill="none"
+          strokeDasharray={i % 2 === 0 ? "0" : "10 9"}
+        />
+      ))}
+    </svg>
+  );
 }
 
 export default function Home() {
@@ -47,88 +122,135 @@ export default function Home() {
     setError("");
   }
 
+  const inputClass =
+    "w-full rounded-xl border border-line bg-background px-4 py-3 text-base outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/25";
+
   return (
-    <main className="mx-auto min-h-screen max-w-2xl px-6 py-12">
-      <header className="mb-10">
-        <h1 className="text-3xl font-bold tracking-tight">
-          ランニング練習 予約
-        </h1>
-        <p className="mt-2 text-sm text-black/60 dark:text-white/60">
-          お名前と希望日時を入力して予約してください。
-        </p>
-        <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-black/10 px-4 py-1.5 text-sm dark:border-white/15">
-          <span className="text-black/50 dark:text-white/50">練習場所</span>
-          <span className="font-medium">{LOCATION}</span>
-        </p>
+    <main className="mx-auto w-full max-w-2xl px-5 pb-20 pt-10 sm:px-6">
+      {/* ヒーロー：トラックのレーンを背景にした見出し */}
+      <header className="relative overflow-hidden rounded-3xl bg-[#14181f] px-7 py-10 text-white shadow-xl sm:px-10 sm:py-12">
+        <div className="absolute inset-0 bg-gradient-to-br from-accent/35 via-transparent to-transparent" />
+        <div className="text-accent">
+          <TrackLines />
+        </div>
+
+        <div className="relative">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-accent">
+            <RunnerIcon className="h-5 w-5" />
+            Running Club
+          </p>
+
+          <h1 className="mt-4 text-4xl font-black leading-tight tracking-tight sm:text-5xl">
+            ランニング練習
+            <br />
+            <span className="text-accent">予約</span>
+          </h1>
+
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/70">
+            お名前と希望日時を入力するだけ。今日も一歩、前へ。
+          </p>
+
+          <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm backdrop-blur">
+            <PinIcon className="h-4 w-4 text-accent" />
+            <span className="font-semibold">{LOCATION}</span>
+          </p>
+        </div>
       </header>
 
+      {/* 予約フォーム */}
       <form
         onSubmit={handleSubmit}
-        className="rounded-xl border border-black/10 p-6 dark:border-white/15"
+        className="relative -mt-6 rounded-2xl border border-line bg-surface p-6 shadow-lg sm:p-7"
       >
         <div className="flex flex-col gap-5">
           <label className="flex flex-col gap-2">
-            <span className="text-sm font-medium">お名前</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-muted">
+              お名前
+            </span>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="山田 太郎"
-              className="rounded-lg border border-black/15 px-3 py-2 outline-none focus:border-black/50 dark:border-white/20 dark:focus:border-white/60"
+              className={inputClass}
             />
           </label>
 
           <label className="flex flex-col gap-2">
-            <span className="text-sm font-medium">練習日時</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-muted">
+              練習日時
+            </span>
             <input
               type="datetime-local"
               value={datetime}
               onChange={(e) => setDatetime(e.target.value)}
-              className="rounded-lg border border-black/15 px-3 py-2 outline-none focus:border-black/50 dark:border-white/20 dark:focus:border-white/60"
+              className={inputClass}
             />
           </label>
 
           {error && (
-            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+            <p
+              role="alert"
+              className="rounded-lg bg-red-500/10 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400"
+            >
               {error}
             </p>
           )}
 
           <button
             type="submit"
-            className="rounded-lg bg-foreground px-4 py-2.5 font-medium text-background transition-opacity hover:opacity-85"
+            className="group flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-base font-bold text-white shadow-md transition-all hover:bg-accent-strong hover:shadow-lg active:scale-[0.99]"
           >
+            <RunnerIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             予約する
           </button>
         </div>
       </form>
 
+      {/* 予約一覧 */}
       <section className="mt-10">
-        <h2 className="mb-4 text-xl font-semibold">
-          予約一覧
-          <span className="ml-2 text-sm font-normal text-black/50 dark:text-white/50">
-            {reservations.length}件
+        <div className="mb-5 flex items-baseline justify-between border-b-2 border-line pb-3">
+          <h2 className="text-lg font-black tracking-tight">エントリー一覧</h2>
+          <span className="text-sm font-bold text-accent">
+            {reservations.length}
+            <span className="ml-0.5 text-muted">名</span>
           </span>
-        </h2>
+        </div>
 
         {reservations.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-black/15 px-6 py-10 text-center text-sm text-black/50 dark:border-white/20 dark:text-white/50">
-            まだ予約はありません。
+          <p className="rounded-2xl border-2 border-dashed border-line px-6 py-12 text-center text-sm text-muted">
+            まだエントリーはありません。
+            <br />
+            最初のランナーになりましょう。
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
-            {reservations.map((r) => (
+            {reservations.map((r, i) => (
               <li
                 key={r.id}
-                className="rounded-xl border border-black/10 px-5 py-4 dark:border-white/15"
+                className="flex items-center gap-4 overflow-hidden rounded-2xl border border-line bg-surface p-4 shadow-sm transition-shadow hover:shadow-md"
               >
-                <p className="font-medium">{r.name}</p>
-                <p className="mt-1 text-sm text-black/60 dark:text-white/60">
-                  {formatDatetime(r.datetime)}
-                </p>
-                <p className="mt-0.5 text-sm text-black/50 dark:text-white/50">
-                  {r.location}
-                </p>
+                {/* ゼッケン番号ふうの通し番号 */}
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent/15 font-mono text-base font-bold text-accent">
+                  {i + 1}
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-base font-bold">{r.name}</p>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted">
+                    <PinIcon className="h-3.5 w-3.5 shrink-0" />
+                    {r.location}
+                  </p>
+                </div>
+
+                <div className="shrink-0 text-right">
+                  <p className="text-xs font-medium text-muted">
+                    {formatDate(r.datetime)}
+                  </p>
+                  <p className="font-mono text-lg font-bold leading-tight">
+                    {formatTime(r.datetime)}
+                  </p>
+                </div>
               </li>
             ))}
           </ul>
