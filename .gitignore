@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 鍵の見本ファイルだけは例外的に保存する（中身はダミー）
+!.env.local.example

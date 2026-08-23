@@ -1,15 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import { fetchReservations, addReservation } from "@/lib/reservations";
+import type { ReservationRow } from "@/lib/supabase";
 
 const LOCATION = "大洲平野運動公園";
-
-type Reservation = {
-  id: number;
-  name: string;
-  datetime: string;
-  location: string;
-};
 
 function formatDate(value: string) {
   const d = new Date(value);
@@ -102,10 +98,20 @@ function TrackLines() {
 export default function Home() {
   const [name, setName] = useState("");
   const [datetime, setDatetime] = useState("");
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [reservations, setReservations] = useState<ReservationRow[]>([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  // 最初に一度、保存済みの予約をデータベースから読み込む
+  useEffect(() => {
+    fetchReservations()
+      .then(setReservations)
+      .catch(() => setError("予約一覧を読み込めませんでした。通信環境をご確認ください。"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     if (!name.trim() || !datetime) {
@@ -113,13 +119,21 @@ export default function Home() {
       return;
     }
 
-    setReservations((prev) => [
-      ...prev,
-      { id: Date.now(), name: name.trim(), datetime, location: LOCATION },
-    ]);
-    setName("");
-    setDatetime("");
+    setSaving(true);
     setError("");
+
+    try {
+      const saved = await addReservation(name.trim(), datetime);
+      setReservations((prev) =>
+        [...prev, saved].sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
+      );
+      setName("");
+      setDatetime("");
+    } catch {
+      setError("保存できませんでした。もう一度お試しください。");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const inputClass =
@@ -199,10 +213,11 @@ export default function Home() {
 
           <button
             type="submit"
-            className="group flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-base font-bold text-white shadow-md transition-all hover:bg-accent-strong hover:shadow-lg active:scale-[0.99]"
+            disabled={saving}
+            className="group flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-base font-bold text-white shadow-md transition-all hover:bg-accent-strong hover:shadow-lg active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <RunnerIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-            予約する
+            {saving ? "送信中..." : "予約する"}
           </button>
         </div>
       </form>
@@ -217,7 +232,11 @@ export default function Home() {
           </span>
         </div>
 
-        {reservations.length === 0 ? (
+        {loading ? (
+          <p className="rounded-2xl border-2 border-dashed border-line px-6 py-12 text-center text-sm text-muted">
+            読み込み中...
+          </p>
+        ) : reservations.length === 0 ? (
           <p className="rounded-2xl border-2 border-dashed border-line px-6 py-12 text-center text-sm text-muted">
             まだエントリーはありません。
             <br />
@@ -245,10 +264,10 @@ export default function Home() {
 
                 <div className="shrink-0 text-right">
                   <p className="text-xs font-medium text-muted">
-                    {formatDate(r.datetime)}
+                    {formatDate(r.starts_at)}
                   </p>
                   <p className="font-mono text-lg font-bold leading-tight">
-                    {formatTime(r.datetime)}
+                    {formatTime(r.starts_at)}
                   </p>
                 </div>
               </li>
